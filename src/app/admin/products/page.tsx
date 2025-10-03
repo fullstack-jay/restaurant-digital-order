@@ -112,9 +112,31 @@ export default function AdminProductsPage() {
         }),
       });
 
-      const result = await response.json();
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        // Try to get error message from response
+        let errorMessage = 'Failed to process image';
+        try {
+          const errorResult = await response.json();
+          errorMessage = errorResult.error || errorResult.message || errorMessage;
+        } catch (e) {
+          console.error('Could not parse error response as JSON:', e);
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        setUploadError(errorMessage);
+        return;
+      }
 
-      if (response.ok) {
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        console.error('Error parsing JSON response:', jsonError);
+        setUploadError('Invalid response from server');
+        return;
+      }
+
+      if (result.success) {
         setUploadSuccess(true);
         // Reset form
         setImage(null);
@@ -146,11 +168,11 @@ export default function AdminProductsPage() {
     return <div className="container mx-auto py-8">Loading...</div>;
   }
 
-  if (userRole !== 'admin' && userRole !== 'superadmin') {
+  if (userRole !== 'admin') {
     return (
       <div className="container mx-auto py-8 text-center">
         <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-        <p>Only admins and superadmins can access this page.</p>
+        <p>Only regular admins can access this page. Superadmins do not have product management permissions.</p>
       </div>
     );
   }

@@ -71,6 +71,31 @@ export async function POST(req: NextRequest) {
       // If the user_roles table is empty, this is the first user - make them a superadmin
       if (count === 0) {
         role = 'superadmin';
+      } else {
+        // For additional users, check the limit for regular admins only (not counting superadmin)
+        const { count: adminCount, error: adminError } = await supabase
+          .from('user_roles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'admin'); // Count only regular admins
+
+        if (adminError) {
+          console.error('Error checking admin count:', adminError);
+          return NextResponse.json({ error: 'Database error' }, { status: 500 });
+        }
+
+        // Limit to 5 regular admin accounts maximum (superadmin doesn't count toward limit)
+        const maxAdmins = 5;
+        
+        // Check if we've reached the maximum number of regular admins
+        if ((adminCount ?? 0) >= maxAdmins) {
+          console.log(`Maximum admin limit (${maxAdmins}) reached. User ${userId} denied admin access.`);
+          
+          // Return error response to indicate access denied
+          return NextResponse.json({ 
+            error: 'Maximum admin limit reached', 
+            message: `Only ${maxAdmins} admin accounts are allowed (superadmin does not count toward limit)` 
+          }, { status: 400 });
+        }
       }
 
       // Insert user role into database
@@ -94,13 +119,17 @@ export async function POST(req: NextRequest) {
       });
 
       // Set user's public metadata
-      await clerkClient.users.updateUserMetadata(userId, {
-        publicMetadata: {
-          role,
-        },
-      });
-
-      console.log(`User ${userId} assigned role: ${role}`);
+      try {
+        await clerkClient.users.updateUserMetadata(userId, {
+          publicMetadata: {
+            role,
+          },
+        });
+        console.log(`User ${userId} assigned role: ${role}`);
+      } catch (metadataError) {
+        console.error('Error updating user metadata:', metadataError);
+        return NextResponse.json({ error: 'Failed to assign role to user' }, { status: 500 });
+      }
       return NextResponse.json({ success: true });
     } catch (error: unknown) {
       console.error('Error processing user creation:', error);

@@ -91,9 +91,30 @@ export default function AdminUsersPage() {
         body: JSON.stringify({ email, inviterId: user?.id }),
       });
 
-      const result = await response.json();
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        let errorMessage = 'Failed to invite admin';
+        try {
+          const errorResult = await response.json();
+          errorMessage = errorResult.error || errorResult.message || errorMessage;
+        } catch (e) {
+          console.error('Could not parse error response as JSON:', e);
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        setInviteError(errorMessage);
+        return;
+      }
 
-      if (response.ok) {
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        console.error('Error parsing JSON response:', jsonError);
+        setInviteError('Invalid response from server');
+        return;
+      }
+
+      if (result.success) {
         setEmail('');
         // Refresh the list of users
         const { data: userRoles, error: rolesError } = await supabase
@@ -108,7 +129,7 @@ export default function AdminUsersPage() {
       }
     } catch (error) {
       console.error('Error inviting admin:', error);
-      setInviteError('An error occurred while inviting admin');
+      setInviteError('An error occurred while inviting admin. Please check your configuration.');
     } finally {
       setInviting(false);
     }

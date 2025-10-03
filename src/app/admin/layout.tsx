@@ -44,12 +44,6 @@ export default function AdminLayout({
                 >
                   Orders
                 </Link>
-                <Link 
-                  href="/admin/users" 
-                  className={`text-gray-700 px-3 py-2 rounded-md font-medium ${isActive('/admin/users') ? 'bg-gray-200' : 'hover:bg-gray-100'}`}
-                >
-                  Users
-                </Link>
               </nav>
             </div>
             <div className="flex items-center">

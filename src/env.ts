@@ -7,14 +7,15 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    DATABASE_URL: z.string().url(),
+    DATABASE_URL: z.string().url().optional().default('postgresql://localhost:5432/fake_db'),
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
       .default('development'),
-    CLERK_SECRET_KEY: z.string(),
-    CLERK_WEBHOOK_SECRET: z.string(),
-    XENDIT_SECRET_KEY: z.string(),
-    OPENAI_API_KEY: z.string(),
+    CLERK_SECRET_KEY: z.string().optional().default('fake_clerk_secret_key'),
+    CLERK_WEBHOOK_SECRET: z.string().optional().default('fake_clerk_webhook_secret'),
+    XENDIT_SECRET_KEY: z.string().optional().default('fake_xendit_secret'),
+    OPENAI_API_KEY: z.string().optional().default('fake_openai_key'),
+    HUGGINGFACE_API_KEY: z.string().optional().default('hf_invalid_key'),
   },
 
   /**
@@ -26,6 +27,7 @@ export const env = createEnv({
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
     NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string(),
+    NEXT_PUBLIC_BASE_URL: z.string().url().optional(),
   },
 
   /**
@@ -40,8 +42,10 @@ export const env = createEnv({
     CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
     XENDIT_SECRET_KEY: process.env.XENDIT_SECRET_KEY,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    HUGGINGFACE_API_KEY: process.env.HUGGINGFACE_API_KEY,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
