@@ -1,0 +1,87 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { env } from '@/env';
+import { supabase } from '@/lib/supabase';
+
+// Xendit Webhook Handler
+export async function POST(request: NextRequest) {
+  try {
+    // Verify webhook signature (simplified - in production you should implement proper verification)
+    // Get raw body for signature verification
+    const rawBody = await request.text();
+    
+    // Parse the webhook payload
+    const payload = JSON.parse(rawBody);
+    
+    // Log the entire payload for debugging
+    console.log('Xendit Webhook Payload:', payload);
+    
+    // Check if this is a paid invoice
+    if (payload.status === 'PAID') {
+      const externalId = payload.external_id;
+      
+      // Extract order ID from external_id (format: order_123e4567-e89b-12d3-a456-426614174000)
+      const orderId = externalId.replace('order_', '');
+      
+      // Update order status in the database
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          status: 'paid',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+
+      if (error) {
+        console.error('Error updating order status:', error);
+        return NextResponse.json(
+          { error: 'Failed to update order status' },
+          { status: 500 }
+        );
+      }
+
+      console.log(`Order ${orderId} status updated to paid`);
+      return NextResponse.json({ success: true });
+    } 
+    // Handle other statuses if needed
+    else if (payload.status === 'EXPIRED' || payload.status === 'FAILED') {
+      const externalId = payload.external_id;
+      const orderId = externalId.replace('order_', '');
+      
+      // Update order status for expired/failed payments
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          status: payload.status.toLowerCase(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+
+      if (error) {
+        console.error('Error updating order status for failed payment:', error);
+        return NextResponse.json(
+          { error: 'Failed to update order status' },
+          { status: 500 }
+        );
+      }
+
+      console.log(`Order ${orderId} status updated to ${payload.status.toLowerCase()}`);
+      return NextResponse.json({ success: true });
+    } 
+    else {
+      // For other statuses, just acknowledge
+      console.log(`Received webhook for order ${payload.external_id} with status: ${payload.status}`);
+      return NextResponse.json({ success: true });
+    }
+  } catch (error) {
+    console.error('Xendit webhook error:', error);
+    return NextResponse.json(
+      { error: 'Webhook processing failed' },
+      { status: 500 }
+    );
+  }
+}
+
+// Export a GET route handler for webhook verification (some services check this)
+export async function GET() {
+  return NextResponse.json({ message: 'Xendit webhook endpoint' });
+}
