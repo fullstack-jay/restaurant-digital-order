@@ -4,11 +4,20 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 // Xendit Webhook Handler
 export async function POST(request: NextRequest) {
   try {
+    console.log('Xendit webhook received');
+    
     // Get raw body for signature verification
     const rawBody = await request.text();
     
     console.log('Xendit Webhook Headers:', Object.fromEntries(request.headers));
     console.log('Raw Body:', rawBody);
+    
+    // Check if XENDIT_WEBHOOK_SECRET is set
+    if (!process.env.XENDIT_WEBHOOK_SECRET) {
+      console.error('XENDIT_WEBHOOK_SECRET is not set in environment variables');
+    } else {
+      console.log('XENDIT_WEBHOOK_SECRET is set');
+    }
     
     // In production, we require signature verification for security
     // In development, we allow bypass for testing purposes
@@ -50,6 +59,8 @@ export async function POST(request: NextRequest) {
         if (!isSignatureValid) {
           console.warn('Invalid Xendit signature in development mode, continuing anyway for testing');
           // In development, continue processing even with invalid signature for testing
+        } else {
+          console.log('Signature verification successful');
         }
       } else {
         console.warn('No signature header found, continuing in development mode for testing');
@@ -57,7 +68,16 @@ export async function POST(request: NextRequest) {
     }
     
     // Parse the webhook payload
-    const payload = JSON.parse(rawBody);
+    let payload;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch (parseError) {
+      console.error('Error parsing webhook payload:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid JSON in webhook payload' },
+        { status: 400 }
+      );
+    }
     
     // Log the entire payload for debugging
     console.log('Xendit Webhook Payload:', payload);
@@ -71,21 +91,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Processing webhook with status:', payload.status);
+    
     // Check if this is a paid invoice
     if (payload.status === 'PAID') {
       const externalId = payload.external_id;
+      console.log('Processing PAID status for external_id:', externalId);
       
       // Extract order ID from external_id (format: order_123e4567-e89b-12d3-a456-426614174000)
       const orderId = externalId.replace('order_', '');
+      console.log('Extracted order ID:', orderId);
       
       // Update order status in the database
-      const { error } = await supabase!
+      const { error, data } = await supabase!
         .from('orders')
         .update({ 
           status: 'paid',
           updated_at: new Date().toISOString()
         })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .select(); // Add select to return updated record
 
       if (error) {
         console.error('Error updating order status:', error);
@@ -95,22 +120,24 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log(`Order ${orderId} status updated to paid`);
-      return NextResponse.json({ success: true });
+      console.log(`Order ${orderId} status updated to paid. Updated record:`, data);
+      return NextResponse.json({ success: true, message: `Order ${orderId} status updated to paid` });
     } 
     // Handle other statuses if needed
     else if (payload.status === 'EXPIRED' || payload.status === 'FAILED') {
       const externalId = payload.external_id;
       const orderId = externalId.replace('order_', '');
+      console.log(`Processing ${payload.status} status for external_id:`, externalId, 'Order ID:', orderId);
       
       // Update order status for expired/failed payments
-      const { error } = await supabase!
+      const { error, data } = await supabase!
         .from('orders')
         .update({ 
           status: payload.status.toLowerCase(),
           updated_at: new Date().toISOString()
         })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .select(); // Add select to return updated record
 
       if (error) {
         console.error('Error updating order status for failed payment:', error);
@@ -120,18 +147,22 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log(`Order ${orderId} status updated to ${payload.status.toLowerCase()}`);
-      return NextResponse.json({ success: true });
+      console.log(`Order ${orderId} status updated to ${payload.status.toLowerCase()}. Updated record:`, data);
+      return NextResponse.json({ success: true, message: `Order ${orderId} status updated to ${payload.status.toLowerCase()}` });
     } 
     else {
       // For other statuses, just acknowledge
       console.log(`Received webhook for order ${payload.external_id} with status: ${payload.status}`);
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ 
+        success: true, 
+        message: `Received webhook for status: ${payload.status}`,
+        acknowledged: true
+      });
     }
   } catch (error) {
     console.error('Xendit webhook error:', error);
     return NextResponse.json(
-      { error: 'Webhook processing failed' },
+      { error: 'Webhook processing failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
