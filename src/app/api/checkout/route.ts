@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         'Authorization': `Basic ${Buffer.from(process.env.XENDIT_SECRET_KEY + ':').toString('base64')}`,
       },
       body: JSON.stringify({
-        external_id: `order_${orderData.id}`,
+        external_id: orderData.id,
         amount: Math.round(totalAmount), // Round to integer
         description: `Payment for order #${orderData.id}`,
         currency: 'IDR',

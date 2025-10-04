@@ -95,12 +95,8 @@ export async function POST(request: NextRequest) {
     
     // Check if this is a paid invoice
     if (payload.status === 'PAID') {
-      const externalId = payload.external_id;
-      console.log('Processing PAID status for external_id:', externalId);
-      
-      // Extract order ID from external_id (format: order_123e4567-e89b-12d3-a456-426614174000)
-      const orderId = externalId.replace('order_', '');
-      console.log('Extracted order ID:', orderId);
+      const orderId = payload.external_id;
+      console.log('Processing PAID status for order ID:', orderId);
       
       // Update order status in the database
       const { error, data } = await supabase!
@@ -125,9 +121,8 @@ export async function POST(request: NextRequest) {
     } 
     // Handle other statuses if needed
     else if (payload.status === 'EXPIRED' || payload.status === 'FAILED') {
-      const externalId = payload.external_id;
-      const orderId = externalId.replace('order_', '');
-      console.log(`Processing ${payload.status} status for external_id:`, externalId, 'Order ID:', orderId);
+      const orderId = payload.external_id;
+      console.log(`Processing ${payload.status} status for order ID:`, orderId);
       
       // Update order status for expired/failed payments
       const { error, data } = await supabase!
