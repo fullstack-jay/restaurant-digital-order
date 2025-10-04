@@ -10,24 +10,50 @@ export async function POST(request: NextRequest) {
     console.log('Xendit Webhook Headers:', Object.fromEntries(request.headers));
     console.log('Raw Body:', rawBody);
     
-    // Verify webhook signature - Xendit uses 'x-callback-token' or 'x-xendit-signature' headers
-    const signature = request.headers.get('x-xendit-signature') || request.headers.get('x-callback-token');
-    if (!signature) {
-      console.error('Missing Xendit signature header. Available headers:', Object.fromEntries(request.headers));
-      return NextResponse.json(
-        { error: 'Missing signature header' },
-        { status: 400 }
-      );
-    }
-    
-    // Verify the signature using Xendit's method
-    const isSignatureValid = await verifyXenditSignature(rawBody, signature);
-    if (!isSignatureValid) {
-      console.error('Invalid Xendit signature');
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 401 }
-      );
+    // In production, we require signature verification for security
+    // In development, we allow bypass for testing purposes
+    if (process.env.NODE_ENV === 'production') {
+      // Verify webhook signature - Xendit uses 'x-callback-token' header for invoice webhooks
+      // We'll check multiple possible header names Xendit might use
+      const signature = request.headers.get('x-callback-token') || 
+                       request.headers.get('x-xendit-signature') ||
+                       request.headers.get('X-Callback-Token') || 
+                       request.headers.get('X-Xendit-Signature');
+      
+      if (!signature) {
+        console.error('Missing Xendit signature header in production. Available headers:', Object.fromEntries(request.headers));
+        return NextResponse.json(
+          { error: 'Missing signature header' },
+          { status: 400 }
+        );
+      }
+      
+      // Verify the signature using Xendit's method
+      const isSignatureValid = await verifyXenditSignature(rawBody, signature);
+      if (!isSignatureValid) {
+        console.error('Invalid Xendit signature');
+        return NextResponse.json(
+          { error: 'Invalid signature' },
+          { status: 401 }
+        );
+      }
+    } else {
+      // For development environment, allow requests without signature for testing
+      const signature = request.headers.get('x-callback-token') || 
+                       request.headers.get('x-xendit-signature') ||
+                       request.headers.get('X-Callback-Token') || 
+                       request.headers.get('X-Xendit-Signature');
+      
+      if (signature) {
+        console.log('Signature header found, attempting verification');
+        const isSignatureValid = await verifyXenditSignature(rawBody, signature);
+        if (!isSignatureValid) {
+          console.warn('Invalid Xendit signature in development mode, continuing anyway for testing');
+          // In development, continue processing even with invalid signature for testing
+        }
+      } else {
+        console.warn('No signature header found, continuing in development mode for testing');
+      }
     }
     
     // Parse the webhook payload
@@ -111,23 +137,23 @@ import { createHmac } from 'crypto';
 
 // Helper function to verify Xendit signature
 async function verifyXenditSignature(rawBody: string, signature: string): Promise<boolean> {
-  // For development, we might skip signature verification
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('Skipping webhook signature verification in development');
-    return true;
-  }
-
-  // In production, we should verify the signature using the webhook secret
+  // In production, we must verify the signature for security
   // This requires the Xendit webhook secret to be set in the environment
   if (!process.env.XENDIT_WEBHOOK_SECRET) {
     console.error('XENDIT_WEBHOOK_SECRET is not set in environment');
     return false;
   }
 
-  // Use crypto to verify the signature
-  const expectedSignature = createHmac('sha256', process.env.XENDIT_WEBHOOK_SECRET)
-    .update(rawBody)
-    .digest('base64'); // Xendit sends base64 encoded signatures
+  try {
+    // Use crypto to verify the signature
+    // Xendit calculates signature using HMAC SHA256 of the raw body with the webhook secret
+    const expectedSignature = createHmac('sha256', process.env.XENDIT_WEBHOOK_SECRET)
+      .update(rawBody)
+      .digest('base64');
 
-  return signature === expectedSignature;
+    return signature === expectedSignature;
+  } catch (error) {
+    console.error('Error in signature verification:', error);
+    return false;
+  }
 }
