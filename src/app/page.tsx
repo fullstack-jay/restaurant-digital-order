@@ -127,7 +127,7 @@ export default function Home() {
                   </p>
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-bold text-blue-600">
-                      ${parseFloat(product.price).toFixed(2)}
+                      Rp {Math.round(parseFloat(product.price)).toLocaleString('id-ID')}
                     </span>
                     <button
                       onClick={() => 

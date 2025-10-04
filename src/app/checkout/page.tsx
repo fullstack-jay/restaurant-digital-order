@@ -91,10 +91,10 @@ export default function CheckoutPage() {
                 />
                 <div className="flex-1">
                   <h3 className="font-semibold">{item.name}</h3>
-                  <p className="text-gray-600 text-sm">${item.price.toFixed(2)} x {item.quantity}</p>
+                  <p className="text-gray-600 text-sm">Rp {Math.round(item.price).toLocaleString('id-ID')} x {item.quantity}</p>
                 </div>
                 <div className="w-24 text-right font-semibold">
-                  ${(item.price * item.quantity).toFixed(2)}
+                  Rp {Math.round(item.price * item.quantity).toLocaleString('id-ID')}
                 </div>
               </div>
             ))}
@@ -104,15 +104,15 @@ export default function CheckoutPage() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${cartTotal.toFixed(2)}</span>
+                <span>Rp {Math.round(cartTotal).toLocaleString('id-ID')}</span>
               </div>
               <div className="flex justify-between">
                 <span>Tax</span>
-                <span>${tax.toFixed(2)}</span>
+                <span>Rp {Math.round(tax).toLocaleString('id-ID')}</span>
               </div>
               <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200">
                 <span>Total</span>
-                <span>${(cartTotal + tax).toFixed(2)}</span>
+                <span>Rp {Math.round(cartTotal + tax).toLocaleString('id-ID')}</span>
               </div>
             </div>
           </div>

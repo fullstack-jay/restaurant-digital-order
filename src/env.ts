@@ -14,8 +14,7 @@ export const env = createEnv({
     CLERK_SECRET_KEY: z.string().optional().default('fake_clerk_secret_key'),
     CLERK_WEBHOOK_SECRET: z.string().optional().default('fake_clerk_webhook_secret'),
     XENDIT_SECRET_KEY: z.string().optional().default('fake_xendit_secret'),
-    OPENAI_API_KEY: z.string().optional().default('fake_openai_key'),
-    HUGGINGFACE_API_KEY: z.string().optional().default('hf_invalid_key'),
+    OPENROUTER_API_KEY: z.string().optional().default('fake_openrouter_key'),
   },
 
   /**
@@ -44,8 +43,7 @@ export const env = createEnv({
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
     XENDIT_SECRET_KEY: process.env.XENDIT_SECRET_KEY,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-    HUGGINGFACE_API_KEY: process.env.HUGGINGFACE_API_KEY,
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

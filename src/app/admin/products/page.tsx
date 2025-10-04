@@ -12,7 +12,7 @@ export default function AdminProductsPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState<string | boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   type Product = {
     id: string;
@@ -54,13 +54,14 @@ export default function AdminProductsPage() {
       try {
         const { data, error } = await supabase
           .from('products')
-          .select('*')
+          .select('id, image_url, name, price, description, created_at, is_available')
           .order('created_at', { ascending: false });
 
         if (error) {
           console.error('Error fetching products:', error);
         } else {
-          setProducts(data);
+          // Cast to Product type since we're selecting all required fields
+          setProducts(data as Product[]);
         }
       } catch (err) {
         console.error('Error:', err);
@@ -101,14 +102,17 @@ export default function AdminProductsPage() {
       // send the image to n8n/OpenAI for processing
       // For now, we'll call our n8n webhook endpoint directly with the image data
       
-      const response = await fetch('/api/n8n/process-image', {
+      // Get the filename from the file input
+      const fileName = fileInputRef.current?.files?.[0]?.name || 'unknown_image.jpg';
+      
+      const response = await fetch('/api/openai/process-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          image: image, // This would be the image data URL
-          userId: user?.id,
+          image: image, // This is the image data URL
+          imageName: fileName, // Pass the original filename
         }),
       });
 
@@ -144,14 +148,23 @@ export default function AdminProductsPage() {
           fileInputRef.current.value = '';
         }
         
+        // Show message if price needs verification
+        if (result.message) {
+          console.log('API message:', result.message);
+          // Optionally show the message in the UI
+          if (result.message.includes('verify the price manually')) {
+            setUploadSuccess(result.message);
+          }
+        }
+        
         // Refresh product list
         const { data, error } = await supabase
           .from('products')
-          .select('*')
+          .select('id, image_url, name, price, description, created_at, is_available')
           .order('created_at', { ascending: false });
 
         if (!error) {
-          setProducts(data);
+          setProducts(data as Product[]);
         }
       } else {
         setUploadError(result.error || 'Failed to process image');
@@ -204,7 +217,7 @@ export default function AdminProductsPage() {
                     <div className="flex flex-col items-center justify-center">
                       <Upload className="h-10 w-10 text-gray-400" />
                       <p className="mt-2 text-sm text-gray-600">Click to upload an image of the product</p>
-                      <p className="text-xs text-gray-500">The AI will extract product details automatically</p>
+                      <p className="text-xs text-gray-500">The AI will extract product details automatically (price needs manual verification)</p>
                     </div>
                   )}
                 </div>
@@ -222,7 +235,9 @@ export default function AdminProductsPage() {
               )}
 
               {uploadSuccess && (
-                <p className="text-green-500">Product processed successfully!</p>
+                <p className="text-green-500">
+                  {typeof uploadSuccess === 'string' ? uploadSuccess : 'Product processed successfully!'}
+                </p>
               )}
 
               <Button 
@@ -230,7 +245,7 @@ export default function AdminProductsPage() {
                 disabled={uploading || !image}
                 className="w-full"
               >
-                {uploading ? 'Processing...' : 'Process Image with AI'}
+                {uploading ? 'Processing...' : 'Process Image & Extract Details'}
               </Button>
             </div>
           </CardContent>
@@ -260,6 +275,9 @@ export default function AdminProductsPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Available
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Description
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -279,7 +297,7 @@ export default function AdminProductsPage() {
                           {product.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          ${parseFloat(product.price).toFixed(2)}
+                          Rp {parseInt(product.price).toLocaleString('id-ID')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
@@ -288,6 +306,9 @@ export default function AdminProductsPage() {
                               : 'bg-red-100 text-red-800'}`}>
                             {product.is_available ? 'Yes' : 'No'}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                          {product.description || 'No description available'}
                         </td>
                       </tr>
                     ))}

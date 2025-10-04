@@ -56,7 +56,7 @@ export default function CartPage() {
                   </button>
                 </div>
                 <div className="ml-4 w-24 text-right font-semibold">
-                  ${(item.price * item.quantity).toFixed(2)}
+                  Rp {Math.round(item.price * item.quantity).toLocaleString('id-ID')}
                 </div>
                 <button 
                   onClick={() => removeFromCart(item.id)}
@@ -75,15 +75,15 @@ export default function CartPage() {
           <div className="space-y-2 mb-6">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>${cartTotal.toFixed(2)}</span>
+              <span>Rp {Math.round(cartTotal).toLocaleString('id-ID')}</span>
             </div>
             <div className="flex justify-between">
               <span>Tax</span>
-              <span>${(cartTotal * 0.1).toFixed(2)}</span>
+              <span>Rp {Math.round(cartTotal * 0.1).toLocaleString('id-ID')}</span>
             </div>
             <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200">
               <span>Total</span>
-              <span>${(cartTotal * 1.1).toFixed(2)}</span>
+              <span>Rp {Math.round(cartTotal * 1.1).toLocaleString('id-ID')}</span>
             </div>
           </div>
           

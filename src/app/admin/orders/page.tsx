@@ -184,7 +184,7 @@ export default function AdminOrdersPage() {
                             {item.products?.name} (x{item.quantity})
                           </span>
                         </div>
-                        <span>${(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                        <span>Rp {Math.round(parseFloat(item.price) * item.quantity).toLocaleString('id-ID')}</span>
                       </li>
                     ))}
                   </ul>
@@ -192,7 +192,7 @@ export default function AdminOrdersPage() {
                 
                 <div className="flex justify-end">
                   <div className="text-right">
-                    <p className="font-semibold">Total: ${parseFloat(order.total_amount).toFixed(2)}</p>
+                    <p className="font-semibold">Total: Rp {Math.round(parseFloat(order.total_amount)).toLocaleString('id-ID')}</p>
                     {order.xendit_invoice_id && (
                       <p className="text-sm text-gray-500">Invoice ID: {order.xendit_invoice_id}</p>
                     )}
