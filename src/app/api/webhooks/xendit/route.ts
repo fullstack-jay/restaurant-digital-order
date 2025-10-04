@@ -7,10 +7,13 @@ export async function POST(request: NextRequest) {
     // Get raw body for signature verification
     const rawBody = await request.text();
     
-    // Verify webhook signature
-    const signature = request.headers.get('x-xendit-signature');
+    console.log('Xendit Webhook Headers:', Object.fromEntries(request.headers));
+    console.log('Raw Body:', rawBody);
+    
+    // Verify webhook signature - Xendit uses 'x-callback-token' or 'x-xendit-signature' headers
+    const signature = request.headers.get('x-xendit-signature') || request.headers.get('x-callback-token');
     if (!signature) {
-      console.error('Missing Xendit signature header');
+      console.error('Missing Xendit signature header. Available headers:', Object.fromEntries(request.headers));
       return NextResponse.json(
         { error: 'Missing signature header' },
         { status: 400 }
