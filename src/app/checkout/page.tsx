@@ -153,7 +153,7 @@ export default function CheckoutPage() {
               className="w-full" 
               disabled={isProcessing}
             >
-              {isProcessing ? 'Processing...' : `Pay $${(cartTotal + tax).toFixed(2)}`}
+              {isProcessing ? 'Processing...' : `Bayar Rp ${Math.round(cartTotal + tax).toLocaleString('id-ID')}`}
             </Button>
             
             <div className="mt-4 text-center">

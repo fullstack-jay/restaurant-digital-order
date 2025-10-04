@@ -70,21 +70,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For now, returning a mock invoice URL - in real implementation, you would:
-    // 1. Create the Xendit invoice using the correct API
-    // 2. Store the invoice ID and URL
-    // 3. Update the order with the Xendit invoice ID
+    // Validate Xendit configuration
+    if (!process.env.XENDIT_SECRET_KEY) {
+      console.error('Xendit secret key not configured');
+      return NextResponse.json(
+        { error: 'Payment configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
+    // Make API call directly to Xendit since the SDK usage is problematic
+    const xenditResponse = await fetch('https://api.xendit.co/v2/invoices', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${Buffer.from(process.env.XENDIT_SECRET_KEY + ':').toString('base64')}`,
+      },
+      body: JSON.stringify({
+        external_id: `order_${orderData.id}`,
+        amount: Math.round(totalAmount), // Round to integer
+        description: `Payment for order #${orderData.id}`,
+        currency: 'IDR',
+      }),
+    });
+
+    if (!xenditResponse.ok) {
+      const errorData = await xenditResponse.json();
+      console.error('Xendit API error:', errorData);
+      return NextResponse.json(
+        { error: 'Failed to create payment invoice. Please try again later.' },
+        { status: 500 }
+      );
+    }
+
+    const createdInvoice = await xenditResponse.json();
     
-    // Mock implementation - in real use:
-    // const invoice = await (new Invoice(x, invoiceOptions)).create();
-    
-    const mockInvoiceId = `inv_${orderData.id.substring(0, 8)}`;
-    const mockInvoiceUrl = `https://sandbox.xendit.co/web/invoices/${mockInvoiceId}`;
-    
-    // Update order with mock Xendit invoice ID
+    // Update order with real Xendit invoice ID
     const { error: updateError } = await supabase
       .from('orders')
-      .update({ xendit_invoice_id: mockInvoiceId })
+      .update({ xendit_invoice_id: createdInvoice.id })
       .eq('id', orderData.id);
 
     if (updateError) {
@@ -93,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      invoiceUrl: mockInvoiceUrl,
+      invoiceUrl: createdInvoice.invoice_url,
     });
   } catch (error) {
     console.error('Checkout error:', error);
