@@ -193,7 +193,7 @@ export default function AdminDashboard() {
               </svg>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+              <div className="text-2xl font-bold">Rp. {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(stats.totalRevenue)}</div>
             </CardContent>
           </Card>
         </div>

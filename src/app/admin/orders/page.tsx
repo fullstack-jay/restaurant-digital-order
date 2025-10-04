@@ -196,6 +196,7 @@ export default function AdminOrdersPage() {
                     {order.xendit_invoice_id && (
                       <p className="text-sm text-gray-500">Invoice ID: {order.xendit_invoice_id}</p>
                     )}
+                    <p className="text-xs text-gray-400 mt-1">Created: {new Date(order.created_at).toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>

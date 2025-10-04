@@ -91,16 +91,16 @@ export default function Home() {
           Discover our delicious menu and enjoy the convenience of digital ordering
         </p>
         
-        <Link href="/products">
+        {/* <Link href="/products">
           <Button size="lg" className="px-8 py-3 text-lg">
             View Menu
           </Button>
-        </Link>
+        </Link> */}
       </div>
 
       {/* Featured Products */}
       <div className="container mx-auto px-4 pb-12 sm:pb-8 max-w-5xl">
-        <h2 className="text-2xl font-bold text-center mb-8 text-gray-800">Featured Items</h2>
+        <h2 className="text-2xl font-bold text-center mb-8 text-gray-800">List Menu</h2>
         
         {loading ? (
           <div className="text-center">Loading menu items...</div>
@@ -150,13 +150,13 @@ export default function Home() {
           </div>
         )}
         
-        <div className="text-center mt-10">
+        {/* <div className="text-center mt-10">
           <Link href="/products">
             <Button variant="outline" size="lg">
               View Full Menu
             </Button>
           </Link>
-        </div>
+        </div> */}
       </div>
     </div>
   );

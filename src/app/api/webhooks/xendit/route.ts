@@ -1,13 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { env } from '@/env';
 import { supabase } from '@/lib/supabase';
 
 // Xendit Webhook Handler
 export async function POST(request: NextRequest) {
   try {
-    // Verify webhook signature (simplified - in production you should implement proper verification)
     // Get raw body for signature verification
     const rawBody = await request.text();
+    
+    // Verify webhook signature
+    const signature = request.headers.get('x-xendit-signature');
+    if (!signature) {
+      console.error('Missing Xendit signature header');
+      return NextResponse.json(
+        { error: 'Missing signature header' },
+        { status: 400 }
+      );
+    }
+    
+    // Verify the signature using Xendit's method
+    const isSignatureValid = await verifyXenditSignature(rawBody, signature);
+    if (!isSignatureValid) {
+      console.error('Invalid Xendit signature');
+      return NextResponse.json(
+        { error: 'Invalid signature' },
+        { status: 401 }
+      );
+    }
     
     // Parse the webhook payload
     const payload = JSON.parse(rawBody);
@@ -84,4 +102,29 @@ export async function POST(request: NextRequest) {
 // Export a GET route handler for webhook verification (some services check this)
 export async function GET() {
   return NextResponse.json({ message: 'Xendit webhook endpoint' });
+}
+
+import { createHmac } from 'crypto';
+
+// Helper function to verify Xendit signature
+async function verifyXenditSignature(rawBody: string, signature: string): Promise<boolean> {
+  // For development, we might skip signature verification
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('Skipping webhook signature verification in development');
+    return true;
+  }
+
+  // In production, we should verify the signature using the webhook secret
+  // This requires the Xendit webhook secret to be set in the environment
+  if (!process.env.XENDIT_WEBHOOK_SECRET) {
+    console.error('XENDIT_WEBHOOK_SECRET is not set in environment');
+    return false;
+  }
+
+  // Use crypto to verify the signature
+  const expectedSignature = createHmac('sha256', process.env.XENDIT_WEBHOOK_SECRET)
+    .update(rawBody)
+    .digest('base64'); // Xendit sends base64 encoded signatures
+
+  return signature === expectedSignature;
 }

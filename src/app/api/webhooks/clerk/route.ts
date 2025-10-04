@@ -1,5 +1,4 @@
 import { Webhook, WebhookRequiredHeaders } from 'svix';
-import { Buffer } from 'node:buffer';
 import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/env';
 import { supabase } from '@/lib/supabase';
