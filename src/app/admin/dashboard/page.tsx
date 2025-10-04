@@ -3,7 +3,7 @@
 import { useUser } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function AdminDashboard() {
   const { user, isLoaded } = useUser();
@@ -18,9 +18,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      if (user) {
+      if (user && isSupabaseConfigured && supabase) {
         try {
-          const { data, error } = await supabase
+          const { data, error } = await supabase!
             .from('user_roles')
             .select('role')
             .eq('clerk_user_id', user.id)
@@ -41,9 +41,20 @@ export default function AdminDashboard() {
     };
 
     const fetchStats = async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        console.error('Supabase is not configured');
+        setStats({
+          totalProducts: 0,
+          totalOrders: 0,
+          pendingOrders: 0,
+          totalRevenue: 0,
+        });
+        return;
+      }
+
       try {
         // Get total products
-        const { count: totalProducts, error: productsError } = await supabase
+        const { count: totalProducts, error: productsError } = await supabase!
           .from('products')
           .select('*', { count: 'exact', head: true });
           
@@ -53,7 +64,7 @@ export default function AdminDashboard() {
         }
         
         // Get total orders
-        const { count: totalOrders, error: ordersError } = await supabase
+        const { count: totalOrders, error: ordersError } = await supabase!
           .from('orders')
           .select('*', { count: 'exact', head: true });
           
@@ -62,7 +73,7 @@ export default function AdminDashboard() {
         }
         
         // Get pending orders
-        const { count: pendingOrders, error: pendingError } = await supabase
+        const { count: pendingOrders, error: pendingError } = await supabase!
           .from('orders')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'pending');
@@ -72,7 +83,7 @@ export default function AdminDashboard() {
         }
 
         // Get total revenue
-        const { data: revenueData, error: revenueError } = await supabase
+        const { data: revenueData, error: revenueError } = await supabase!
           .from('orders')
           .select('total_amount')
           .eq('status', 'paid');

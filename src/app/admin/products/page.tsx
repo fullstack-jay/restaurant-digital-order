@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Upload } from 'lucide-react';
 
 export default function AdminProductsPage() {
@@ -31,9 +31,9 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      if (user) {
+      if (user && isSupabaseConfigured && supabase) {
         try {
-          const { data, error } = await supabase
+          const { data, error } = await supabase!
             .from('user_roles')
             .select('role')
             .eq('clerk_user_id', user.id)
@@ -51,8 +51,14 @@ export default function AdminProductsPage() {
     };
 
     const fetchProducts = async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        console.error('Supabase is not configured');
+        setLoadingProducts(false);
+        return;
+      }
+
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabase!
           .from('products')
           .select('id, image_url, name, price, description, created_at, is_available')
           .order('created_at', { ascending: false });
@@ -157,14 +163,18 @@ export default function AdminProductsPage() {
           }
         }
         
-        // Refresh product list
-        const { data, error } = await supabase
-          .from('products')
-          .select('id, image_url, name, price, description, created_at, is_available')
-          .order('created_at', { ascending: false });
+        // Refresh product list only if Supabase is configured
+        if (isSupabaseConfigured && supabase) {
+          const { data, error } = await supabase!
+            .from('products')
+            .select('id, image_url, name, price, description, created_at, is_available')
+            .order('created_at', { ascending: false });
 
-        if (!error) {
-          setProducts(data as Product[]);
+          if (!error) {
+            setProducts(data as Product[]);
+          }
+        } else {
+          console.error('Supabase is not configured for product refresh');
         }
       } else {
         setUploadError(result.error || 'Failed to process image');

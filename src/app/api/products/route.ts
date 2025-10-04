@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export async function GET(_request: NextRequest) {
   try {
+    // Check if Supabase is properly configured
+    if (!isSupabaseConfigured || !supabase) {
+      console.error('Supabase is not configured');
+      return NextResponse.json(
+        { error: 'Database configuration error' },
+        { status: 500 }
+      );
+    }
+
     // Get all products that are available
-    const { data, error } = await supabase
+    const { data, error } = await supabase!
       .from('products')
       .select('*')
       .eq('is_available', true)

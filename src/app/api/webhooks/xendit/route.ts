@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 // Xendit Webhook Handler
 export async function POST(request: NextRequest) {
@@ -62,6 +62,15 @@ export async function POST(request: NextRequest) {
     // Log the entire payload for debugging
     console.log('Xendit Webhook Payload:', payload);
     
+    // Check if Supabase is properly configured
+    if (!isSupabaseConfigured || !supabase) {
+      console.error('Supabase is not configured for webhook processing');
+      return NextResponse.json(
+        { error: 'Database configuration error' },
+        { status: 500 }
+      );
+    }
+
     // Check if this is a paid invoice
     if (payload.status === 'PAID') {
       const externalId = payload.external_id;
@@ -70,7 +79,7 @@ export async function POST(request: NextRequest) {
       const orderId = externalId.replace('order_', '');
       
       // Update order status in the database
-      const { error } = await supabase
+      const { error } = await supabase!
         .from('orders')
         .update({ 
           status: 'paid',
@@ -95,7 +104,7 @@ export async function POST(request: NextRequest) {
       const orderId = externalId.replace('order_', '');
       
       // Update order status for expired/failed payments
-      const { error } = await supabase
+      const { error } = await supabase!
         .from('orders')
         .update({ 
           status: payload.status.toLowerCase(),

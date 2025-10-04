@@ -3,7 +3,7 @@
 import { useUser } from '@clerk/nextjs';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function AdminOrdersPage() {
   const { user, isLoaded } = useUser();
@@ -37,9 +37,9 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      if (user) {
+      if (user && isSupabaseConfigured && supabase) {
         try {
-          const { data, error } = await supabase
+          const { data, error } = await supabase!
             .from('user_roles')
             .select('role')
             .eq('clerk_user_id', user.id)
@@ -57,8 +57,14 @@ export default function AdminOrdersPage() {
     };
 
     const fetchOrders = async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        console.error('Supabase is not configured');
+        setLoading(false);
+        return;
+      }
+
       try {
-        let query = supabase
+        let query = supabase!
           .from('orders')
           .select(`
             *,

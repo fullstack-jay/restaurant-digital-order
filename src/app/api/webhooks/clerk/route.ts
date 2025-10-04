@@ -1,7 +1,7 @@
 import { Webhook, WebhookRequiredHeaders } from 'svix';
 import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/env';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { createClerkClient } from '@clerk/backend';
 
 export async function POST(req: NextRequest) {
@@ -54,8 +54,17 @@ export async function POST(req: NextRequest) {
 
   if (eventType === 'user.created') {
     try {
+      // Check if Supabase is properly configured
+      if (!isSupabaseConfigured || !supabase) {
+        console.error('Supabase is not configured for webhook processing');
+        return NextResponse.json(
+          { error: 'Database configuration error' },
+          { status: 500 }
+        );
+      }
+
       // Check if user_roles table is empty to determine if this is the first user
-      const { count, error } = await supabase
+      const { count, error } = await supabase!
         .from('user_roles')
         .select('*', { count: 'exact', head: true });
 
@@ -72,7 +81,7 @@ export async function POST(req: NextRequest) {
         role = 'superadmin';
       } else {
         // For additional users, check the limit for regular admins only (not counting superadmin)
-        const { count: adminCount, error: adminError } = await supabase
+        const { count: adminCount, error: adminError } = await supabase!
           .from('user_roles')
           .select('*', { count: 'exact', head: true })
           .eq('role', 'admin'); // Count only regular admins
@@ -98,7 +107,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Insert user role into database
-      const { error: insertError } = await supabase
+      const { error: insertError } = await supabase!
         .from('user_roles')
         .insert([
           {

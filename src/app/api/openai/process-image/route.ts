@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 // Create OpenRouter client using the OpenAI-compatible interface
 const openrouter = createOpenAI({
@@ -137,8 +137,17 @@ export async function POST(request: NextRequest) {
       object = result.object;
     }
 
+    // Check if Supabase is properly configured
+    if (!isSupabaseConfigured || !supabase) {
+      console.error('❌ Supabase is not configured');
+      return NextResponse.json(
+        { error: 'Database configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
     // Save to Supabase
-    const { data, error } = await supabase
+    const { data, error } = await supabase!
       .from('products')
       .insert([
         {

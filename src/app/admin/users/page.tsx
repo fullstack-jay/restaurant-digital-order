@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function AdminUsersPage() {
   const { user, isLoaded } = useUser();
@@ -25,9 +25,9 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      if (user) {
+      if (user && isSupabaseConfigured && supabase) {
         try {
-          const { data, error } = await supabase
+          const { data, error } = await supabase!
             .from('user_roles')
             .select('role')
             .eq('clerk_user_id', user.id)
@@ -45,9 +45,15 @@ export default function AdminUsersPage() {
     };
 
     const fetchUsers = async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        console.error('Supabase is not configured');
+        setLoadingUsers(false);
+        return;
+      }
+
       try {
         // First, get all user roles from our database
-        const { data: userRoles, error: rolesError } = await supabase
+        const { data: userRoles, error: rolesError } = await supabase!
           .from('user_roles')
           .select('*');
 
@@ -116,13 +122,17 @@ export default function AdminUsersPage() {
 
       if (result.success) {
         setEmail('');
-        // Refresh the list of users
-        const { data: userRoles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('*');
-        
-        if (!rolesError) {
-          setUsers(userRoles);
+        // Refresh the list of users only if Supabase is configured
+        if (isSupabaseConfigured && supabase) {
+          const { data: userRoles, error: rolesError } = await supabase!
+            .from('user_roles')
+            .select('*');
+          
+          if (!rolesError) {
+            setUsers(userRoles);
+          }
+        } else {
+          console.error('Supabase is not configured for user refresh');
         }
       } else {
         setInviteError(result.error || 'Failed to invite admin');

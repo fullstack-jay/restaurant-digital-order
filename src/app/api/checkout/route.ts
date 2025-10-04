@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Supabase is properly configured
+    if (!isSupabaseConfigured || !supabase) {
+      console.error('Supabase is not configured');
+      return NextResponse.json(
+        { error: 'Database configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const { customerName, items, totalAmount } = body;
 
@@ -15,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create order in the database
-    const { data: orderData, error: orderError } = await supabase
+    const { data: orderData, error: orderError } = await supabase!
       .from('orders')
       .insert([
         {
@@ -51,7 +60,7 @@ export async function POST(request: NextRequest) {
       price: item.price,
     }));
 
-    const { error: orderItemsError } = await supabase
+    const { error: orderItemsError } = await supabase!
       .from('order_items')
       .insert(orderItems);
 
@@ -59,7 +68,7 @@ export async function POST(request: NextRequest) {
       console.error('Error creating order items:', orderItemsError);
       
       // Rollback: Delete the order if order items creation fails
-      await supabase
+      await supabase!
         .from('orders')
         .delete()
         .eq('id', orderData.id);
@@ -106,7 +115,7 @@ export async function POST(request: NextRequest) {
     const createdInvoice = await xenditResponse.json();
     
     // Update order with real Xendit invoice ID
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabase!
       .from('orders')
       .update({ xendit_invoice_id: createdInvoice.id })
       .eq('id', orderData.id);
