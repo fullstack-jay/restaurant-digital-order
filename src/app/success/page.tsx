@@ -3,15 +3,16 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 export default function OrderConfirmation() {
   const [orderId, setOrderId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    // In a real application, you would extract order details from URL parameters
-    // or from the redirect from Xendit
-    setOrderId('12345'); // Placeholder - in reality this would come from the URL or state
-  }, []);
+    const id = searchParams.get('id');
+    setOrderId(id);
+  }, [searchParams]);
 
   return (
     <div className="container mx-auto py-8 px-4 text-center">
@@ -24,21 +25,24 @@ export default function OrderConfirmation() {
         
         {orderId && (
           <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <p className="text-gray-700">Order ID: <span className="font-semibold">{orderId}</span></p>
+            <p className="text-gray-700">
+              Order ID: <span className="font-semibold">{orderId}</span>
+            </p>
           </div>
         )}
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-          <Link href="/products">
+
+        {/* <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mt-8"> */}
+        <div className="flex justify-center gap-4 mt-8">
+          <Link href="/">
             <Button variant="outline" className="w-full">
               Continue Shopping
             </Button>
           </Link>
-          <Link href="/orders">
+          {/* <Link href="/orders">
             <Button className="w-full">
               View Order History
             </Button>
-          </Link>
+          </Link> */}
         </div>
       </div>
     </div>

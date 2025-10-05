@@ -10,17 +10,17 @@ export async function POST(request: NextRequest) {
     const validToken = process.env.XENDIT_WEBHOOK_SECRET
 
     if (!xCallbackToken || xCallbackToken !== validToken) {
-      console.error('❌ Invalid Xendit token:', xCallbackToken)
+      console.error('Invalid Xendit token:', xCallbackToken)
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    console.log('✅ Webhook diterima:', body)
+    console.log('Webhook diterima:', body)
 
     const { external_id, status } = body
 
     if (status === 'PAID') {
       if (!supabase) {
-        console.error('❌ Supabase client is not initialized')
+        console.error('Supabase client is not initialized')
         return NextResponse.json({ error: 'Supabase client is not initialized' }, { status: 500 })
       }
       const { data, error } = await supabase
@@ -30,18 +30,18 @@ export async function POST(request: NextRequest) {
         .select()
 
       if (error) {
-        console.error('❌ Gagal update Supabase:', error)
+        console.error('Gagal update Supabase:', error)
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
 
-      console.log('✅ Order diupdate ke PAID:', data)
+      console.log('Order diupdate ke PAID:', data)
       return NextResponse.json({ success: true, updated: data })
     }
 
-    console.log('ℹ️ Status bukan PAID, diabaikan:', status)
+    console.log('Status bukan PAID, diabaikan:', status)
     return NextResponse.json({ message: `Ignored status: ${status}` })
   } catch (err) {
-    console.error('❌ Error webhook:', err)
+    console.error('Error webhook:', err)
     const msg = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
@@ -49,5 +49,5 @@ export async function POST(request: NextRequest) {
 
 // Cek endpoint aktif
 export async function GET() {
-  return NextResponse.json({ message: '✅ Xendit webhook aktif' })
+  return NextResponse.json({ message: 'Xendit webhook aktif' })
 }

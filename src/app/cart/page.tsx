@@ -12,7 +12,7 @@ export default function CartPage() {
       <div className="container mx-auto py-8 px-4 text-center">
         <h1 className="text-2xl font-bold mb-4">Your Cart</h1>
         <p className="text-gray-600 mb-6">Your cart is empty</p>
-        <Link href="/products">
+        <Link href="/">
           <Button>Continue Shopping</Button>
         </Link>
       </div>

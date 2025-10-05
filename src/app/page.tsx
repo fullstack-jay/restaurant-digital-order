@@ -68,11 +68,11 @@ export default function Home() {
               </Button>
             </Link>
             
-            <SignedOut>
+            {/* <SignedOut>
               <SignInButton>
                 <Button size="sm">Sign In</Button>
               </SignInButton>
-            </SignedOut>
+            </SignedOut> */}
             <SignedIn>
               <UserButton />
             </SignedIn>
