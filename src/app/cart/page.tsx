@@ -36,10 +36,6 @@ export default function CartPage() {
                     (e.target as HTMLImageElement).src = '/placeholder-food.jpg';
                   }}
                 />
-                <div className="flex-1">
-                  <h3 className="font-semibold">{item.name}</h3>
-                  <p className="text-gray-600 text-sm">${item.price.toFixed(2)}</p>
-                </div>
                 <div className="flex items-center space-x-2">
                   <button 
                     onClick={() => updateQuantity(item.id, item.quantity - 1)}
