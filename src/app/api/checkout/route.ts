@@ -36,8 +36,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
     }
 
+    // ✅ Define type for order items
+    type OrderItemRequest = {
+      productId: string;
+      quantity: number;
+      price: number;
+    };
+
     // ✅ 4️⃣ Buat order items
-    const orderItems = items.map((item: any) => ({
+    const orderItems = items.map((item: OrderItemRequest) => ({
       order_id: orderData.id,
       product_id: item.productId,
       quantity: item.quantity,
