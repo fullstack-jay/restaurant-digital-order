@@ -36,14 +36,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
     }
 
-    // ✅ Define type for order items
+    // Define type for order items
     type OrderItemRequest = {
       productId: string;
       quantity: number;
       price: number;
     };
 
-    // ✅ 4️⃣ Buat order items
+    // Buat order items
     const orderItems = items.map((item: OrderItemRequest) => ({
       order_id: orderData.id,
       product_id: item.productId,
@@ -78,8 +78,9 @@ export async function POST(request: NextRequest) {
         payer_email: email,
         description: description || `Payment for order #${external_id}`,
         currency: 'IDR',
-        success_redirect_url: `https://restaurant-digital.vercel.app/success/page}`,
-        failure_redirect_url: `https://restaurant-digital.vercel.app/failed/page}`,
+        success_redirect_url: `https://restaurant-digital.vercel.app/success?id=${external_id}`,
+        failure_redirect_url: `https://restaurant-digital.vercel.app/failed?id=${external_id}`,
+
       }),
     })
 
@@ -106,8 +107,9 @@ export async function POST(request: NextRequest) {
       success: true,
       orderId: orderData.id,
       invoiceUrl: invoice.invoice_url,
-      success_redirect_url: `https://restaurant-digital.vercel.app/success/page}`,
-      failure_redirect_url: `https://restaurant-digital.vercel.app/failed/page}`,
+      success_redirect_url: `https://restaurant-digital.vercel.app/success?id=${external_id}`,
+      failure_redirect_url: `https://restaurant-digital.vercel.app/failed?id=${external_id}`,
+
     })
   } catch (error) {
     console.error('Checkout error:', error)
