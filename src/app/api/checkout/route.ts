@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
         payer_email: email,
         description: description || `Payment for order #${external_id}`,
         currency: 'IDR',
-        success_redirect_url: `https://restaurant-digital.vercel.app/success/page?id=${external_id}`,
-        failure_redirect_url: `https://restaurant-digital.vercel.app/failed/page?id=${external_id}`,
+        success_redirect_url: `https://restaurant-digital.vercel.app/success/page}`,
+        failure_redirect_url: `https://restaurant-digital.vercel.app/failed/page}`,
       }),
     })
 
@@ -106,8 +106,8 @@ export async function POST(request: NextRequest) {
       success: true,
       orderId: orderData.id,
       invoiceUrl: invoice.invoice_url,
-      success_redirect_url: `https://restaurant-digital.vercel.app/success/page?id=${external_id}`,
-      failure_redirect_url: `https://restaurant-digital.vercel.app/failed/page?id=${external_id}`,
+      success_redirect_url: `https://restaurant-digital.vercel.app/success/page}`,
+      failure_redirect_url: `https://restaurant-digital.vercel.app/failed/page}`,
     })
   } catch (error) {
     console.error('Checkout error:', error)
