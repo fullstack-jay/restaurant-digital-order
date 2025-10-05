@@ -1,0 +1,509 @@
+{
+  "name": "Xendit Webhook Handler for Restaurant Digital Order",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "xendit-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-node-id",
+      "name": "Xendit Payment Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "xendit-payment-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "PAID",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "status-check-node-id",
+      "name": "Check Payment Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-2",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "EXPIRED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "status-expired-check-node-id",
+      "name": "Check for Expired Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        460,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "orders",
+        "updateKey": "id",
+        "updateValue": "={{ $json.external_id }}",
+        "fields": [
+          {
+            "fieldName": "status",
+            "fieldValue": "={{ $json.status }}"
+          },
+          {
+            "fieldName": "updated_at",
+            "fieldValue": "={{ new Date().toISOString() }}"
+          }
+        ]
+      },
+      "id": "update-database-paid-node-id",
+      "name": "Update Order Status to Paid in Database",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-credential-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "orders",
+        "updateKey": "id",
+        "updateValue": "={{ $json.external_id }}",
+        "fields": [
+          {
+            "fieldName": "status",
+            "fieldValue": "={{ $json.status }}"
+          },
+          {
+            "fieldName": "updated_at",
+            "fieldValue": "={{ new Date().toISOString() }}"
+          }
+        ]
+      },
+      "id": "update-database-expired-node-id",
+      "name": "Update Order Status to Expired in Database",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        680,
+        480
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-credential-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "email",
+              "value": "={{ $json.customer_email || 'customer@example.com' }}"
+            },
+            {
+              "name": "subject",
+              "value": "={{ 'Order Update: Status Changed to ' + $json.status.toUpperCase() }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ 'Hello, your order #' + $json.external_id + ' has been updated to status: ' + $json.status.toUpperCase() + '. Thank you for using our service!' }}"
+            },
+            {
+              "name": "order_id",
+              "value": "={{ $json.external_id }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-customer-notification-paid-node-id",
+      "name": "Prepare Customer Notification for Payment",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "email",
+              "value": "={{ $json.customer_email || 'customer@example.com' }}"
+            },
+            {
+              "name": "subject",
+              "value": "={{ 'Order Update: Status Changed to ' + $json.status.toUpperCase() }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ 'Hello, your order #' + $json.external_id + ' has been updated to status: ' + $json.status.toUpperCase() + '. Please note that this order has expired.' }}"
+            },
+            {
+              "name": "order_id",
+              "value": "={{ $json.external_id }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-customer-notification-expired-node-id",
+      "name": "Prepare Customer Notification for Expired",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        900,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "webhookUrl": "={{ $json.notification_url || 'https://api.resend.com/emails' }}",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "={{ 'Bearer ' + $credentials.resendApiToken }}"
+        },
+        "body": {
+          "from": "restaurant@example.com",
+          "to": "={{ $json.email }}",
+          "subject": "={{ $json.subject }}",
+          "html": "={{ $json.message }}"
+        },
+        "options": {
+          "response": {
+            "responseMode": "responseNode"
+          }
+        }
+      },
+      "id": "send-email-notification-paid-node-id",
+      "name": "Send Email Notification for Paid",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "webhookUrl": "={{ $json.notification_url || 'https://api.resend.com/emails' }}",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "={{ 'Bearer ' + $credentials.resendApiToken }}"
+        },
+        "body": {
+          "from": "restaurant@example.com",
+          "to": "={{ $json.email }}",
+          "subject": "={{ $json.subject }}",
+          "html": "={{ $json.message }}"
+        },
+        "options": {
+          "response": {
+            "responseMode": "responseNode"
+          }
+        }
+      },
+      "id": "send-email-notification-expired-node-id",
+      "name": "Send Email Notification for Expired",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1120,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "Order status updated and customer notified"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "success-response-paid-node-id",
+      "name": "Return Success Response Paid",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "Order status updated and customer notified"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "success-response-expired-node-id",
+      "name": "Return Success Response Expired",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "received"
+            },
+            {
+              "name": "message",
+              "value": "={{ 'Webhook received with status: ' + $json.status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "default-response-node-id",
+      "name": "Return Default Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        680,
+        660
+      ]
+    }
+  ],
+  "connections": {
+    "Xendit Payment Webhook": {
+      "main": [
+        [
+          {
+            "node": "Check Payment Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check for Expired Status",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Check Payment Status": {
+      "main": [
+        [
+          {
+            "node": "Update Order Status to Paid in Database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check for Expired Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Expired Status": {
+      "main": [
+        [
+          {
+            "node": "Update Order Status to Expired in Database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Default Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Order Status to Paid in Database": {
+      "main": [
+        [
+          {
+            "node": "Prepare Customer Notification for Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Order Status to Expired in Database": {
+      "main": [
+        [
+          {
+            "node": "Prepare Customer Notification for Expired",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Customer Notification for Payment": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification for Paid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Customer Notification for Expired": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification for Expired",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Notification for Paid": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response Paid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Notification for Expired": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response Expired",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return Default Response": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response Paid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "triggerCount": 1,
+  "tags": [
+    "restaurant",
+    "order",
+    "payment",
+    "xendit",
+    "webhook",
+    "notification"
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "instance-id-placeholder"
+  }
+}

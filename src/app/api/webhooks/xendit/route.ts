@@ -19,8 +19,53 @@ export async function POST(request: NextRequest) {
       console.log('XENDIT_WEBHOOK_SECRET is set');
     }
     
-    // Skip signature verification - SECURITY WARNING: This makes your endpoint vulnerable to unauthorized requests
-    console.warn('Signature verification is disabled - this is a security risk in production');
+    // In production, we require signature verification for security
+    // In development, we allow bypass for testing purposes
+    if (process.env.NODE_ENV === 'production') {
+      // Verify webhook signature - Xendit uses 'x-callback-token' header for invoice webhooks
+      // We'll check multiple possible header names Xendit might use
+      const signature = request.headers.get('x-callback-token') || 
+                       request.headers.get('x-xendit-signature') ||
+                       request.headers.get('X-Callback-Token') || 
+                       request.headers.get('X-Xendit-Signature');
+      
+      if (!signature) {
+        console.error('Missing Xendit signature header in production. Available headers:', Object.fromEntries(request.headers));
+        return NextResponse.json(
+          { error: 'Missing signature header' },
+          { status: 400 }
+        );
+      }
+      
+      // Verify the signature using Xendit's method
+      const isSignatureValid = await verifyXenditSignature(rawBody, signature);
+      if (!isSignatureValid) {
+        console.error('Invalid Xendit signature');
+        return NextResponse.json(
+          { error: 'Invalid signature' },
+          { status: 401 }
+        );
+      }
+    } else {
+      // For development environment, allow requests without signature for testing
+      const signature = request.headers.get('x-callback-token') || 
+                       request.headers.get('x-xendit-signature') ||
+                       request.headers.get('X-Callback-Token') || 
+                       request.headers.get('X-Xendit-Signature');
+      
+      if (signature) {
+        console.log('Signature header found, attempting verification');
+        const isSignatureValid = await verifyXenditSignature(rawBody, signature);
+        if (!isSignatureValid) {
+          console.warn('Invalid Xendit signature in development mode, continuing anyway for testing');
+          // In development, continue processing even with invalid signature for testing
+        } else {
+          console.log('Signature verification successful');
+        }
+      } else {
+        console.warn('No signature header found, continuing in development mode for testing');
+      }
+    }
     
     // Parse the webhook payload
     let payload;
@@ -121,4 +166,29 @@ export async function POST(request: NextRequest) {
 // Export a GET route handler for webhook verification (some services check this)
 export async function GET() {
   return NextResponse.json({ message: 'Xendit webhook endpoint' });
+}
+
+import { createHmac } from 'crypto';
+
+// Helper function to verify Xendit signature
+async function verifyXenditSignature(rawBody: string, signature: string): Promise<boolean> {
+  // In production, we must verify the signature for security
+  // This requires the Xendit webhook secret to be set in the environment
+  if (!process.env.XENDIT_WEBHOOK_SECRET) {
+    console.error('XENDIT_WEBHOOK_SECRET is not set in environment');
+    return false;
+  }
+
+  try {
+    // Use crypto to verify the signature
+    // Xendit calculates signature using HMAC SHA256 of the raw body with the webhook secret
+    const expectedSignature = createHmac('sha256', process.env.XENDIT_WEBHOOK_SECRET)
+      .update(rawBody)
+      .digest('base64');
+
+    return signature === expectedSignature;
+  } catch (error) {
+    console.error('Error in signature verification:', error);
+    return false;
+  }
 }
