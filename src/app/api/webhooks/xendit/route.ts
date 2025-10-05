@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
           status: 'paid',
           updated_at: new Date().toISOString()
         })
-        .eq('id', orderId)
+        .eq('external_id', orderId)
         .select(); // Add select to return updated record
 
       if (error) {
