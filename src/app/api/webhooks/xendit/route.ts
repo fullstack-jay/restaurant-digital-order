@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       const { data, error } = await supabase
         .from('orders')
         .update({ status: 'paid' })
-        .eq('external_id', external_id)
+        .eq('id', external_id)
         .select()
 
       if (error) {
